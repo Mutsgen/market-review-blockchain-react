@@ -1,0 +1,286 @@
+// SPDX-License-Identifier: GPL-3.0 
+
+pragma solidity ^0.8.0; 
+
+contract MarketplaceRewievs{
+
+    // Сделать удаление без нулевого адреса
+    struct Shop{
+        address shop_address;
+        bytes32 password;
+        string city;
+        address[] workers;
+        Rewiev[] rewievs;
+    }
+
+    struct User{
+        bytes32 password;
+        uint role; // 0 - buyer, 1 - seller, 2 - admin
+        uint activeRole; //будет записываться активная роль
+        int shop; // если продавец = id shop, иначе -1
+        // можно записывать индекс своего адреса в массиве работников, если роль продавец. так можно избавиться от циклов
+        string[] history; // на интерфейсе будут закидываться строки
+    }
+
+    struct Request{
+        address user;
+        uint role;
+        int shop; // если покупатель до продавца, то это магазин в который приняли
+        bool status; // false - not completed, true - completed
+    }
+
+    struct Rewiev{
+        address creator;
+        uint stars;
+        string comment;
+        Rate[] rates;
+        RewievComment[] comments;
+    }
+
+    struct RewievComment{
+        address creator;
+        string comment;
+        Rate[] rates;
+    }
+
+    struct Rate{
+        address user;
+        bool rate; // 0 - dislike, 1 - like
+    }
+
+    mapping(address => User) public users;
+    Request[] public requests;
+    Shop[] public shops;
+
+    constructor(){
+        User storage admin = users[0xc9DEAF157D5DFBa2d003CBF22eb723c5b7214BC3];
+        admin.password = keccak256(abi.encodePacked("test"));
+        admin.role = 2;
+        admin.activeRole = 2;
+        admin.shop = 0;
+
+                User storage user1 = users[0xC5D999C12a51fb516910611CF063a12F77900352];
+        user1.password = keccak256(abi.encodePacked("test"));
+        user1.role = 0;
+        user1.activeRole = 0;
+        user1.shop = -1;
+
+        
+
+        Shop storage shop1 = shops.push();
+        shop1.shop_address = 0xFb939d896C28697F36a56376a4A3EC5541c14424;
+        shop1.password = keccak256(abi.encodePacked("test"));
+        shop1.city = "Moscow";
+        shop1.workers.push(0xc9DEAF157D5DFBa2d003CBF22eb723c5b7214BC3);
+
+        Rewiev storage rewiev1 = shop1.rewievs.push();
+        rewiev1.creator = 0xC5D999C12a51fb516910611CF063a12F77900352;
+        rewiev1.stars = 3;
+        rewiev1.comment = "something";
+    }
+    
+
+    //modifiers
+    modifier isRegistered {
+        require(users[msg.sender].password != 0x0000000000000000000000000000000000000000000000000000000000000000, "You are not registered");
+        _;
+    }
+
+    modifier isBuyer{
+        require(users[msg.sender].role == 0, "You dont have permissions");
+        _;
+    }
+
+    modifier isSeller{
+        require(users[msg.sender].role == 1, "You dont have permissions");
+        _;
+    }
+
+    modifier isAdmin{
+        require(users[msg.sender].role == 2, "You dont have permissions");
+        _;
+    }
+
+    modifier rateCheck(uint id_shop, uint id_rewiev){
+        require(id_shop < shops.length, "This shop doesnt exists");
+        require(id_rewiev < shops[id_shop].rewievs.length, "This rewiev doesnt exists");
+        _;
+    }    
+
+    //admin functionality 
+    function changeRole(address user, uint role, int shop) isRegistered isAdmin public{ // Изменение роли пользователя админом
+        require(users[user].role != role, "User already has this role");
+        require(users[user].password != 0x0000000000000000000000000000000000000000000000000000000000000000, "User are not registered");
+        if(role == 1){
+            require(shop >= 0 && uint(shop) < shops.length, "Id out of range");
+            require(shops[uint(shop)].shop_address != 0x0000000000000000000000000000000000000000, "Shop deleted");
+            users[user].role = role;
+            users[user].shop = shop;
+            shops[uint(shop)].workers.push(user);
+        }
+        else if (role == 0){
+            users[user].role = role; 
+            if (users[user].role == 1){
+                for (uint i = 0; i < shops[uint(users[user].shop)].workers.length; i++){
+                    if (shops[uint(users[user].shop)].workers[i] == user){
+                        delete shops[uint(users[user].shop)].workers[i];
+                        break;
+                    }
+                }
+                users[user].shop = -1;
+            }
+        }
+        else if (role == 2){
+            users[user].role = role;
+            if (users[user].shop != -1){
+                for (uint i = 0; i < shops[uint(users[user].shop)].workers.length; i++){
+                    if (shops[uint(users[user].shop)].workers[i] == user){
+                        delete shops[uint(users[user].shop)].workers[i];
+                        break;
+                    }
+                }
+                users[user].shop = -1;
+            }
+        }
+        users[user].activeRole = role;
+    }   
+
+    function acceptRequest(uint id) isRegistered isAdmin public{ // Одобрить запрос на изменение роли
+        require(requests[id].status == false, "Request already completed");
+        require(users[requests[id].user].role != requests[id].role, "User already has that role");
+        if(requests[id].role == 1){
+            require(shops[uint(requests[id].shop)].shop_address != 0x0000000000000000000000000000000000000000, "Shop deleted");
+            users[requests[id].user].role = requests[id].role;
+            users[requests[id].user].shop = requests[id].shop;
+            shops[uint(requests[id].shop)].workers.push(requests[id].user);            
+        }
+        else{
+            users[requests[id].user].role = requests[id].role;
+            for (uint i = 0; i < shops[uint(users[requests[id].user].shop)].workers.length; i++){
+                if (shops[uint(users[requests[id].user].shop)].workers[i] == requests[id].user){
+                    delete shops[uint(users[requests[id].user].shop)].workers[i];
+                    break;
+                }
+            }
+            users[requests[id].user].shop = -1; 
+        }
+        users[requests[id].user].activeRole = requests[id].role;
+        requests[id].status = true;
+    }
+
+    function switchActiveRole() isRegistered public{ // Изменение активной роли на покупателя
+        require(users[msg.sender].role == 2 || users[msg.sender].role == 1, "Only admin and seller can do this");
+        if (users[msg.sender].activeRole == users[msg.sender].role){
+            users[msg.sender].activeRole = 0;
+        }
+        else{
+            users[msg.sender].activeRole = users[msg.sender].role;
+        }
+    }   
+
+    function createNewShop(address shop, string memory city, bytes32 password) isRegistered isAdmin public{ // Добавление магазина
+        require(users[shop].password == 0x0000000000000000000000000000000000000000000000000000000000000000, "This address is taken by user");
+        for (uint i = 0; i < shops.length; i++){
+            if(shops[i].shop_address == shop) {
+                revert("this shop alredy shop");
+            }
+        }
+        Shop storage newShop = shops.push();
+        newShop.shop_address = shop;
+        newShop.city = city;
+        newShop.password = password;
+    }
+
+    function removeShop(uint shop) isRegistered isAdmin public{ // Удаление магазина
+        require(shop < shops.length, "This element doesnt exists");
+        for (uint i = 0; i < shops[shop].workers.length; i++){
+            users[shops[shop].workers[i]].role = 0;
+        }
+        delete shops[shop];
+
+        /// не робит
+    }
+
+
+    //seller functionality
+    function commentRewiev(uint shop, uint id, string memory comment) isRegistered rateCheck(shop, id) public{ // Оставить комментарий  ?? одна фунцуиция для покупателейц и продавцов или 2 разные
+        require(users[msg.sender].role == 0 || users[msg.sender].role == 1, "Only buyers and sellers can do this");
+        RewievComment storage newComment = shops[shop].rewievs[id].comments.push();
+        newComment.creator = msg.sender;
+        newComment.comment = comment;
+    }
+
+    //user functionality 
+    function createRewiev(uint id_shop, uint stars, string memory comment) isRegistered isBuyer public{ // Создание обзора магазина
+        require(shops[uint(id_shop)].shop_address != 0x0000000000000000000000000000000000000000, "Shop deleted");
+        require(users[msg.sender].role == 0, "Only buyers can do this");
+        require(id_shop < shops.length, "This shop doesnt exists");
+        Rewiev storage newRewiev = shops[id_shop].rewievs.push();
+        newRewiev.creator = msg.sender;
+        newRewiev.stars = stars;
+        newRewiev.comment = comment;
+    }
+
+    function requestToChangeRole(int id_shop, uint role) isRegistered public { // запрос на изменение роли 
+        require(users[msg.sender].role == 0 || users[msg.sender].role == 1, "Only buyer and seller can do this");
+        require(role == 1 || role == 0, "You cant choose this role");
+        require(users[msg.sender].role != role, "You already has this role");
+        require(shops[uint(id_shop)].shop_address != 0x0000000000000000000000000000000000000000, "Shop deleted");
+        // Если на роль продавца, входным параметром указывается адрес магазина куда добавить, иначе адрес магазина в котором работаешь
+        if (role == 1){
+            require(id_shop >= 0 && uint(id_shop) < shops.length, "Id out of range");
+            require(shops[uint(id_shop)].shop_address != 0x0000000000000000000000000000000000000000, "Shop deleted");
+            requests.push(Request(msg.sender, role, id_shop, false));
+        }
+        else if (role == 0){
+            // принимает любое значение для айди магазина
+            requests.push(Request(msg.sender, role, -1, false));
+        }
+    }
+
+    function leaveLikeDislikeOnRewiev(uint id_shop, uint id_rewiev, bool rate) isRegistered isBuyer rateCheck(id_shop, id_rewiev) public{ // Оценка обзора
+        require(shops[uint(id_shop)].shop_address != 0x0000000000000000000000000000000000000000, "Shop deleted");
+        shops[id_shop].rewievs[id_rewiev].rates.push(Rate(msg.sender, rate)); 
+    }
+
+    function leaveLikeDislikeOnComment(uint id_shop, uint id_rewiev, uint id_comment, bool rate) isRegistered isBuyer rateCheck(id_shop, id_rewiev) public{ //оценка комментария
+        require(shops[uint(id_shop)].shop_address != 0x0000000000000000000000000000000000000000, "Shop deleted");
+        require(id_comment < shops[id_shop].rewievs[id_rewiev].comments.length, "This comment doesnt exists");
+        shops[id_shop].rewievs[id_rewiev].comments[id_comment].rates.push(Rate(msg.sender, rate));
+    }
+
+    function registration(bytes32 password) public{
+        require(users[msg.sender].password == 0x0000000000000000000000000000000000000000000000000000000000000000, "This account already registered");
+        // ??? Проверка зареган ли магазин на этот адрес через цикл
+        User storage newUser = users[msg.sender];
+        newUser.password = password;
+        newUser.role = 0;
+        newUser.activeRole = 0;
+        newUser.shop = -1;
+    }
+
+    function login(bytes32 password) public view returns(bool){
+        require(users[msg.sender].password != 0x0000000000000000000000000000000000000000000000000000000000000000, "You are not registered");
+        return users[msg.sender].password == password;
+    }
+
+    // Снять лайк/дизлайк
+
+
+    function showShopWorkers(uint id) public view returns(address[] memory){
+        return shops[id].workers;
+    }
+
+    function showUser(address adr) public view returns(User memory){
+        return users[adr];
+    }
+        function showRequests() public view returns(Request[] memory){
+        return requests;
+    }
+        function showShops() public view returns(Shop[] memory){
+        return shops;
+    }
+        function showHistory(address user) public view returns(string[] memory){
+        return users[user].history;
+    }
+}	

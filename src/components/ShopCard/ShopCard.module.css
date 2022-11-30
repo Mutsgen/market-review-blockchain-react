@@ -1,0 +1,14 @@
+.shop_card {
+  width: max-content;
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  padding: 15px 10px;
+  gap: 10px;
+  border: 2px solid rgb(45, 143, 255);
+  border-radius: 10px;
+}
+.shop_card span {
+  width: max-content;
+  margin: 0 auto;
+}

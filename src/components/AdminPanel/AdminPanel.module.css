@@ -1,0 +1,32 @@
+.admin_panel {
+  width: 90%;
+  height: max-content;
+  margin: 0 auto;
+}
+.admin_panel .buttons {
+  padding: 15px 0px;
+  gap: 5%;
+  width: max-content;
+  height: max-content;
+  display: flex;
+  justify-content: center;
+  margin: 0 auto;
+  align-items: center;
+}
+.admin_panel .buttons button,
+.current_window div button {
+  min-width: max-content;
+  min-height: max-content;
+}
+
+.current_window div {
+  display: grid;
+  justify-content: center;
+  margin: 0 auto;
+  align-items: center;
+  gap: 5%;
+  min-width: max-content;
+  min-height: max-content;
+  width: 90%;
+  margin-bottom: 15px;
+}

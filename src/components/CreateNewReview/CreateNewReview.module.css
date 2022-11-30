@@ -1,0 +1,22 @@
+.content {
+  width: 80%;
+  margin: 0 auto;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgb(45, 143, 255);
+}
+.content * {
+  margin-bottom: 5px;
+}
+.content textarea {
+  width: 60%;
+  height: 80px;
+  word-wrap: break-word;
+  align-self: center;
+  border-radius: 10px;
+  border: 1px solid rgb(45, 143, 255);
+  padding: 2px 7px 2px 7px;
+  outline: none;
+  justify-self: center;
+  resize: none;
+}

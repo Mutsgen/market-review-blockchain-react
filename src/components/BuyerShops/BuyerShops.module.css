@@ -1,0 +1,14 @@
+.shop_block {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  height: max-content;
+  width: 100%;
+  max-width: 100%;
+  padding: 15px 10px;
+  justify-self: center;
+  justify-content: center;
+  border: 2px solid rgb(45, 143, 255);
+  border-radius: 10px;
+}

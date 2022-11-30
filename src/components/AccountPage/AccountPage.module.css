@@ -1,0 +1,38 @@
+.account_page {
+  width: 90%;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  word-break: break-all;
+}
+.account_page h1,
+.account_page h2 {
+  word-break: break-all;
+  width: fit-content;
+  max-width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  margin-bottom: 5px;
+  border-bottom: 1px solid rgb(45, 143, 255);
+}
+.to_seller_block {
+  display: flex;
+  height: 40px;
+  width: 80%;
+  margin: 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.to_seller_block input {
+  width: 50%;
+}
+.to_seller_block button {
+  width: 20%;
+}
+.logout {
+  min-width: max-content;
+  width: 10%;
+  justify-self: end;
+  margin-right: 1%;
+}

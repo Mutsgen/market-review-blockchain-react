@@ -1,0 +1,29 @@
+.review {
+  width: min-content;
+  height: min-content;
+  min-width: 100%;
+  min-height: 10%;
+  display: grid;
+  font-size: 16px;
+  border: 2px solid rgb(45, 143, 255);
+  border-radius: 10px;
+  padding: 15px 10px;
+  gap: 5px;
+  word-break: break-all;
+}
+.creator::before {
+  content: "Автор:   ";
+}
+.review .stars::before {
+  content: "🌟";
+}
+.stars {
+  font-weight: bold;
+}
+.comment::before {
+  content: "Отзыв: ";
+}
+.comments_block::before {
+  content: "Комментарии:";
+  width: max-content;
+}
